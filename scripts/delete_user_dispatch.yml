@@ -1,0 +1,38 @@
+---
+- name: Dispatch user deletion with time check
+  hosts: localhost
+  gather_facts: false
+
+  vars_files:
+    - ../templates/system_map.yml
+
+  vars:
+    username: "{{ username }}"
+    delete_time: "{{ delete_time }}"  # Format: 2025-05-20T03:00:00
+
+  tasks:
+    - name: Lookup systems for user
+      set_fact:
+        user_systems: "{{ system_map[username] | default([]) }}"
+
+    - name: Convert delete_time to timestamp
+      set_fact:
+        scheduled_epoch: "{{ (delete_time | to_datetime('%Y-%m-%dT%H:%M:%S')).timestamp() | int }}"
+        current_epoch: "{{ lookup('pipe', 'date +%s') | int }}"
+
+    - name: Fail if current time < scheduled time
+      fail:
+        msg: "⏰ Not yet time to delete {{ username }} ({{ current_epoch }} < {{ scheduled_epoch }})"
+      when: current_epoch < scheduled_epoch
+
+    - name: Proceed with user deletion
+      debug:
+        msg: "✅ Deleting {{ username }} from systems: {{ user_systems }}"
+
+    - name: Delete from Active Directory
+      include_tasks: "../ad/delete/delete_user.yml"
+      when: "'ad' in user_systems"
+
+    - name: Delete from Gmail
+      include_tasks: "../gmail/delete/delete_user.yml"
+      when: "'gmail' in user_systems"

@@ -28,8 +28,8 @@
     - name: Delete from Gmail
       include_tasks: "../gmail/delete/delete_user.yml"
 
-    - name: Delete from Linux
-      include_tasks: "../linux/delete/delete_user.yml"
+   # - name: Delete from Linux
+    #  include_tasks: "../linux/delete/delete_user.yml"
 
-    - name: Delete from GCP
-      include_tasks: "../gcp/delete/delete_user.yml"
+   # - name: Delete from GCP
+    #  include_tasks: "../gcp/delete/delete_user.yml"

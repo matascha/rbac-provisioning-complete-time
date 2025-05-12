@@ -5,7 +5,7 @@
     if ($user) {
       Remove-ADUser -Identity $user -Confirm:$false
     }
-  delegate_to: awx-ad.odawx.local
+  delegate_to: 192.168.248.35
   ignore_errors: true
 
 - name: Log AD Deletion Result

@@ -1,0 +1,92 @@
+- name: DEBUG input_users structure
+  debug:
+    var: input_users
+
+- name: DEBUG input_users[0] type
+  debug:
+    msg: "input_users[0] = {{ input_users[0] }}, type = {{ input_users[0] | type_debug }}"
+  when: input_users | length > 0
+  
+- name: Compose GSuite JSON
+  copy:
+    content: |
+      {
+        "type": "service_account",
+        "project_id": "{{ project_id }}",
+        "private_key_id": "{{ private_key_id }}",
+        "private_key": "{{ private_key }}",
+        "client_email": "{{ client_email }}",
+        "client_id": "",
+        "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+        "token_uri": "https://oauth2.googleapis.com/token",
+        "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+        "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/{{ client_email | urlencode }}"
+      }
+    dest: "/tmp/gsuite.json"
+    mode: "0600"
+
+- name: Include GSuite Auth Role
+  include_role:
+    name: gsuite_auth
+  vars:
+    service_account_path: "/tmp/gsuite.json"
+    impersonate_user: "{{ impersonate_user }}"
+    cache_file: "/tmp/token_cache.json"
+    token_generator_script: "scripts/gen_gsuite_token.py"  
+    
+- name: DEBUG Token
+  debug:
+    msg: "Access Token: {{ gsuite_token_data.access_token }}"
+      
+- name: Check G Suite connection
+  uri:
+    url: "https://admin.googleapis.com/admin/directory/v1/users?customer=my_customer&maxResults=1"
+    method: GET
+    headers:
+      Authorization: "Bearer {{ gsuite_token_data.access_token }}"
+      Content-Type: "application/json"
+    return_content: yes
+    status_code: 200
+  register: gsuite_check
+
+- name: Ensure input_users is a list
+  assert:
+    that:
+      - input_users is iterable
+      - input_users[0] is mapping
+    fail_msg: "❌ input_users ไม่ใช่ list หรือโครงสร้างผิด"
+    
+- name: DEBUG input_users structure (again)
+  debug:
+    var: input_users
+
+- name: Check if Gmail user already exists
+  vars:
+    user: "{{ item }}"
+  uri:
+    url: "https://admin.googleapis.com/admin/directory/v1/users/{{ user.email }}"
+    method: GET
+    headers:
+      Authorization: "Bearer {{ gsuite_token_data.access_token }}"
+      Content-Type: "application/json"
+    status_code: [200, 404]
+    return_content: yes
+  loop: "{{ input_users }}"
+  register: user_check_result
+  loop_control:
+    label: "{{ item.email }}"
+
+- name: Build users_to_delete list (only users that exist)
+  set_fact:
+    users_to_delete: "{{ user_check_result.results | selectattr('status', 'equalto', 200) | map(attribute='item') | list }}"
+    
+- name: Delete Gmail users
+  uri:
+    url: "https://admin.googleapis.com/admin/directory/v1/users/{{ user.email }}"
+    method: DELETE
+    headers:
+      Authorization: "Bearer {{ gsuite_token_data.access_token }}"
+    status_code: [204, 404]
+  loop: "{{ users_to_delete }}"
+  loop_control:
+    loop_var: user

@@ -26,15 +26,15 @@
   include_tasks: "../gmail/delete/delete_user.yml"
   when: current_epoch >= scheduled_epoch
 
-- name: Delete from Linux
-  include_tasks: "../linux/delete/delete_user.yml"
-  when: current_epoch >= scheduled_epoch
+#- name: Delete from Linux
+ # include_tasks: "../linux/delete/delete_user.yml"
+  #when: current_epoch >= scheduled_epoch
 
-- name: Delete from GCP
-  include_tasks: "../gcp/delete/delete_user.yml"
-  when: current_epoch >= scheduled_epoch
+#- name: Delete from GCP
+ # include_tasks: "../gcp/delete/delete_user.yml"
+  #when: current_epoch >= scheduled_epoch
 
-- name: Log result to file
+#- name: Log result to file
   copy:
     content: |
       {{ ansible_date_time.iso8601 }} - Deleted: {{ username }}

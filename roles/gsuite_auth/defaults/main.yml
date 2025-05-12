@@ -1,0 +1,5 @@
+---
+cache_file: "/tmp/token_cache.json"
+token_generator_script: "scripts/gen_gsuite_token.py"
+service_account_path: "/tmp/gsuite.json"
+impersonate_user: "it.admin@googee.co"

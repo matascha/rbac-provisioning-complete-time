@@ -1,4 +1,3 @@
----
 - name: Compose GSuite JSON
   copy:
     content: |
@@ -24,7 +23,29 @@
     service_account_path: "/tmp/gsuite.json"
     impersonate_user: "{{ impersonate_user }}"
     cache_file: "/tmp/token_cache.json"
-    token_generator_script: "scripts/gen_gsuite_token.py"
+    token_generator_script: "scripts/gen_gsuite_token.py"  
+    
+- name: DEBUG Token
+  debug:
+    msg: "Access Token: {{ gsuite_token_data.access_token }}"
+      
+- name: Check G Suite connection
+  uri:
+    url: "https://admin.googleapis.com/admin/directory/v1/users?customer=my_customer&maxResults=1"
+    method: GET
+    headers:
+      Authorization: "Bearer {{ gsuite_token_data.access_token }}"
+      Content-Type: "application/json"
+    return_content: yes
+    status_code: 200
+  register: gsuite_check
+
+- name: Ensure input_users is a list
+  assert:
+    that:
+      - input_users is iterable
+      - input_users[0] is mapping
+    fail_msg: "❌ input_users ไม่ใช่ list หรือโครงสร้างผิด"
 
 - name: DEBUG received email
   debug:

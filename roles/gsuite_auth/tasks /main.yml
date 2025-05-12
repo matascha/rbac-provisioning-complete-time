@@ -1,3 +1,15 @@
+---
+- name: Generate token using script
+  command: >
+    python3 {{ token_generator_script }}
+    {{ service_account_path }}
+    {{ impersonate_user }}
+  register: token_output
+
+- name: Parse token JSON
+  set_fact:
+    gsuite_token_data: "{{ token_output.stdout | from_json }}"
+
 - name: Load token from cache if exists
   stat:
     path: "{{ cache_file }}"

@@ -4,9 +4,9 @@
     username: "{{ target.username }}"
     delete_time: "{{ target.delete_time }}"
 
-- name: Convert delete_time to timestamp
+- name: Convert delete_time (UTC+7) to UTC timestamp
   set_fact:
-    scheduled_epoch: "{{ (delete_time | to_datetime('%Y-%m-%dT%H:%M:%S')).timestamp() | int }}"
+    scheduled_epoch: "{{ ((delete_time | to_datetime('%Y-%m-%dT%H:%M:%S')).timestamp() | int) - 25200 }}"
     current_epoch: "{{ lookup('pipe', 'date +%s') | int }}"
 
 - name: Check if time has come

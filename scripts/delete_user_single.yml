@@ -1,0 +1,44 @@
+---
+- name: Set username and delete_time
+  set_fact:
+    username: "{{ target.username }}"
+    delete_time: "{{ target.delete_time }}"
+
+- name: Convert delete_time to timestamp
+  set_fact:
+    scheduled_epoch: "{{ (delete_time | to_datetime('%Y-%m-%dT%H:%M:%S')).timestamp() | int }}"
+    current_epoch: "{{ lookup('pipe', 'date +%s') | int }}"
+
+- name: Check if time has come
+  debug:
+    msg: "⏰ Time to delete {{ username }}? {{ current_epoch }} >= {{ scheduled_epoch }}"
+
+- name: Skip if not time yet
+  when: current_epoch < scheduled_epoch
+  debug:
+    msg: "⏳ Skipping {{ username }}. Not time yet."
+
+- name: Delete from Active Directory
+  include_tasks: "../ad/delete/delete_user.yml"
+  when: current_epoch >= scheduled_epoch
+
+- name: Delete from Gmail
+  include_tasks: "../gmail/delete/delete_user.yml"
+  when: current_epoch >= scheduled_epoch
+
+- name: Delete from Linux
+  include_tasks: "../linux/delete/delete_user.yml"
+  when: current_epoch >= scheduled_epoch
+
+- name: Delete from GCP
+  include_tasks: "../gcp/delete/delete_user.yml"
+  when: current_epoch >= scheduled_epoch
+
+- name: Log result to file
+  copy:
+    content: |
+      {{ ansible_date_time.iso8601 }} - Deleted: {{ username }}
+    dest: "/tmp/user_deletion_log.txt"
+    force: no
+    mode: '0644'
+  when: current_epoch >= scheduled_epoch

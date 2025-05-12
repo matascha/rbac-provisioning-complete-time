@@ -1,0 +1,14 @@
+---
+- name: Batch delete users from all systems (with scheduled time check)
+  hosts: localhost
+  gather_facts: false
+
+  vars:
+    user_list: "{{ user_list }}"  # Expects a list of dicts: [{"username": ..., "delete_time": ...}, ...]
+
+  tasks:
+    - name: Loop through user list
+      include_tasks: delete_user_single.yml
+      loop: "{{ user_list }}"
+      loop_control:
+        loop_var: target

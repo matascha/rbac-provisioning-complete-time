@@ -1,0 +1,13 @@
+---
+- name: Delete AD User
+  win_shell: |
+    $user = Get-ADUser -Filter "SamAccountName -eq '{{ username }}'" -ErrorAction SilentlyContinue
+    if ($user) {
+      Remove-ADUser -Identity $user -Confirm:$false
+    }
+  delegate_to: awx-ad.odawx.local
+  ignore_errors: true
+
+- name: Log AD Deletion Result
+  ansible.builtin.debug:
+    msg: "Tried deleting {{ username }} from AD on {{ inventory_hostname }}"
